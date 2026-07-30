@@ -58,7 +58,9 @@ async function initDB() {
             'started_at TIMESTAMP WITH TIME ZONE',
             'completed_at TIMESTAMP WITH TIME ZONE',
             'updated_at TIMESTAMP WITH TIME ZONE',
-            'questions_attempted INTEGER'
+            'questions_attempted INTEGER',
+            'correct_answers INTEGER',
+            'correct_questions INTEGER'
         ];
         
         for (const col of columnsToAdd) {
@@ -71,11 +73,21 @@ async function initDB() {
         
         // Ensure nullable columns for incomplete attempts
         const columnsToDropNotNull = [
-            'total_questions', 'correct_answers', 'incorrect_answers', 'score', 'percentage', 'evaluation'
+            'total_questions', 'correct_questions', 'correct_answers', 'incorrect_answers', 'score', 'percentage', 'evaluation',
+            'time_allowed', 'time_taken', 'time_remaining', 'submission_type'
         ];
         for (const col of columnsToDropNotNull) {
             try {
                 await pool.query(`ALTER TABLE quiz_attempts ALTER COLUMN ${col} DROP NOT NULL`);
+            } catch (e) {
+                // Ignore
+            }
+        }
+        
+        const columnsToText = ['time_allowed', 'time_taken', 'time_remaining', 'submission_type'];
+        for (const col of columnsToText) {
+            try {
+                await pool.query(`ALTER TABLE quiz_attempts ALTER COLUMN ${col} TYPE TEXT USING ${col}::text`);
             } catch (e) {
                 // Ignore
             }
@@ -174,6 +186,7 @@ app.post('/api/finish-quiz', async (req, res) => {
                 questions_attempted = $4,
                 total_questions = $5,
                 correct_answers = $6,
+                correct_questions = $6,
                 incorrect_answers = $7,
                 score = $8,
                 percentage = $9,
