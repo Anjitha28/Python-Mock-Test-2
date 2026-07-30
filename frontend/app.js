@@ -268,12 +268,13 @@ function renderQuestion() {
     if (q.code) {
         // Simple replace for DROPDOWN blanks [b1], [b2]
         let codeHtml = q.code;
-        if (q.type === 'DROPDOWN' && q.options) {
-            q.options.forEach((opts, i) => {
+        if ((q.type === 'DROPDOWN' || q.type === 'DD') && q.options) {
+            const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
+            optionsArrays.forEach((opts, i) => {
                 let selectHtml = `<select data-blank="${i}" class="dropdown-blank" onchange="saveDropdownAnswer(${currentQuestionIndex}, ${i}, this.value)">`;
                 selectHtml += `<option value="-1">-- Select --</option>`;
                 opts.forEach((opt, optIdx) => {
-                    let isSelected = (userAnswers[currentQuestionIndex] && userAnswers[currentQuestionIndex][i] == optIdx) ? 'selected' : '';
+                    let isSelected = (userAnswers[currentQuestionIndex] && (userAnswers[currentQuestionIndex][i] == optIdx || userAnswers[currentQuestionIndex][i] == opt)) ? 'selected' : '';
                     selectHtml += `<option value="${optIdx}" ${isSelected}>${opt}</option>`;
                 });
                 selectHtml += `</select>`;
@@ -281,6 +282,20 @@ function renderQuestion() {
             });
         }
         html += `<pre><code>${codeHtml}</code></pre>`;
+    } else if ((q.type === 'DROPDOWN' || q.type === 'DD') && q.options) {
+        let textHtml = q.q;
+        const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
+        optionsArrays.forEach((opts, i) => {
+            let selectHtml = `<select data-blank="${i}" class="dropdown-blank" onchange="saveDropdownAnswer(${currentQuestionIndex}, ${i}, this.value)">`;
+            selectHtml += `<option value="-1">-- Select --</option>`;
+            opts.forEach((opt, optIdx) => {
+                let isSelected = (userAnswers[currentQuestionIndex] && (userAnswers[currentQuestionIndex][i] == optIdx || userAnswers[currentQuestionIndex][i] == opt)) ? 'selected' : '';
+                selectHtml += `<option value="${optIdx}" ${isSelected}>${opt}</option>`;
+            });
+            selectHtml += `</select>`;
+            textHtml = textHtml.replace(`[b${i+1}]`, selectHtml);
+        });
+        html = `<div class="question-text">${textHtml}</div>`;
     }
     
     if (q.type === 'TF') {
@@ -500,8 +515,8 @@ function checkIfAnswered(idx) {
     if (q.type === 'MCQ2') {
         return Array.isArray(ua) && ua.length > 0;
     }
-    if (q.type === 'TF' || q.type === 'DROPDOWN' || q.type === 'MTF' || q.type === 'DND') {
-        return typeof ua === 'object' && Object.keys(ua).length > 0;
+    if (q.type === 'TF' || q.type === 'DROPDOWN' || q.type === 'DD' || q.type === 'MTF' || q.type === 'DND') {
+        return typeof ua === 'object' && ua !== null && Object.keys(ua).length > 0;
     }
     return false;
 }
@@ -613,16 +628,19 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
             }
             caDisplay = Array.isArray(correct) ? correct.map(a => q.options[a]).join(', ') : String(correct);
 
-        } else if (q.type === 'DROPDOWN') {
+        } else if (q.type === 'DROPDOWN' || q.type === 'DD') {
+            const correct = Array.isArray(q.a) ? q.a : [q.a];
             if (ua && Array.isArray(correct)) {
                 let pts = 0;
                 let uaArr = [];
+                const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
                 correct.forEach((ansText, i) => {
                     const selIdx = ua[i];
-                    if (selIdx !== undefined && selIdx !== "-1") {
-                        const selText = q.options[i][selIdx];
+                    if (selIdx !== undefined && selIdx !== "-1" && selIdx !== null) {
+                        const opts = optionsArrays[i] || optionsArrays[0] || [];
+                        const selText = (typeof selIdx === 'number' || !isNaN(selIdx)) && opts[selIdx] !== undefined ? opts[selIdx] : selIdx;
                         uaArr.push(`Blank ${i+1}: ${selText}`);
-                        if (selText === ansText) pts += (1/correct.length);
+                        if (selText === ansText || selIdx == ansText) pts += (1 / correct.length);
                     } else {
                         uaArr.push(`Blank ${i+1}: Not Answered`);
                     }
