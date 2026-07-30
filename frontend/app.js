@@ -366,9 +366,9 @@ function renderQuestion() {
         // Left Column (Options)
         html += `<div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;" id="dnd-source">`;
         choices.forEach((choice, idx) => {
-            // Only show choices not already matched
+            // Only show choices not already matched (allow reuse for MTF)
             let isUsed = false;
-            if (userAnswers[currentQuestionIndex]) {
+            if (q.type !== 'MTF' && userAnswers[currentQuestionIndex]) {
                 isUsed = Object.values(userAnswers[currentQuestionIndex]).includes(choice);
             }
             if (!isUsed) {
