@@ -170,6 +170,9 @@ app.post('/api/start-quiz', async (req, res) => {
 
 app.post('/api/finish-quiz', async (req, res) => {
     try {
+        if (!process.env.DATABASE_URL) {
+            return res.status(500).json({ error: "DATABASE_URL environment variable is missing on server settings." });
+        }
         const data = req.body;
         if (!data.attempt_id || !data.user_id) return res.status(400).json({ error: "Missing attempt_id or user_id" });
         
