@@ -11,7 +11,6 @@ let markedForReview = {}; // { questionIndex: boolean }
 let lastRenderedQuestionIndex = -1;
 let timerInterval;
 const TIME_ALLOWED_MS = 50 * 60 * 1000; // 50 minutes
-let currentTestName = 'Python Mastery - Mock Test 1';
 
 // API Configuration
 const API_BASE_URL = window.location.protocol === 'file:' 
@@ -30,7 +29,6 @@ const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('username');
 const displayName = document.getElementById('display-name');
 const startTestBtn = document.getElementById('start-test-btn');
-const startTest2Btn = document.getElementById('start-test-2-btn');
 const retakeBtn = document.getElementById('retake-btn');
 
 const currentQSpan = document.getElementById('current-q');
@@ -45,7 +43,16 @@ const markText = document.getElementById('mark-text');
 
 // Initialization
 async function init() {
-    // Note: 'questions' array and totalQSpan are populated upon selecting a test.
+    try {
+        questions = typeof mockTestData !== 'undefined' ? mockTestData : [];
+        if(questions.length === 0) {
+            console.error("No questions found.");
+        }
+        totalQSpan.innerText = questions.length;
+    } catch (err) {
+        console.error("Failed to load quiz data:", err);
+        showToast("Failed to load quiz data. Check console.", true);
+    }
 
     // Load state from local storage if exists
     const savedName = localStorage.getItem('pq_username');
@@ -123,24 +130,6 @@ loginForm.addEventListener('submit', async (e) => {
 });
 
 startTestBtn.addEventListener('click', async () => {
-    currentTestName = 'Python Mastery - Mock Test 1';
-    questions = typeof mockTest1Data !== 'undefined' ? mockTest1Data : [];
-    document.querySelector('.quiz-title').innerText = currentTestName;
-    totalQSpan.innerText = questions.length;
-    await startQuizCommon();
-});
-
-if (startTest2Btn) {
-    startTest2Btn.addEventListener('click', async () => {
-        currentTestName = 'Python Mastery - Mock Test 2';
-        questions = typeof mockTest2Data !== 'undefined' ? mockTest2Data : [];
-        document.querySelector('.quiz-title').innerText = currentTestName;
-        totalQSpan.innerText = questions.length;
-        await startQuizCommon();
-    });
-}
-
-async function startQuizCommon() {
     currentQuestionIndex = 0;
     userAnswers = {};
     markedForReview = {};
@@ -156,7 +145,7 @@ async function startQuizCommon() {
         const res = await fetch(`${API_BASE_URL}/start-quiz`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, user_name: userName, test_name: currentTestName })
+            body: JSON.stringify({ user_id: userId, user_name: userName, test_name: 'Python Mastery - Mock Test 2' })
         });
         
         if (res.ok) {
@@ -169,7 +158,7 @@ async function startQuizCommon() {
     } catch (err) {
         console.error("Failed to register quiz start on backend:", err);
     }
-}
+});
 
 prevBtn.addEventListener('click', () => {
     if (currentQuestionIndex > 0) {

@@ -26,16 +26,13 @@
         <!-- Page 2: Quiz Interface / Selection -->
         <div id="page-selection" class="card hidden">
             <h1>Python Mastery</h1>
-            <h2>Select a Mock Test</h2>
-            <p class="subtitle">Welcome, <span id="display-name" style="color:var(--primary); font-weight:bold;"></span>! Please select a test to begin. Each test consists of 40 questions.</p>
+            <h2>Mock Test 2</h2>
+            <p class="subtitle">Welcome, <span id="display-name" style="color:var(--primary); font-weight:bold;"></span>! You are about to start the Python Mock Test 2. This test consists of 40 questions.</p>
             
-            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
-                <button id="start-test-btn" class="btn">Start Mock Test 1</button>
-                <button id="start-test-2-btn" class="btn">Start Mock Test 2</button>
-            </div>
+            <button id="start-test-btn" class="btn">Start Mock Test 2</button>
         </div>
 
-        <!-- Page 3: Mock Test 1 -->
+        <!-- Page 3: Mock Test 2 -->
         <div id="page-quiz" class="card hidden quiz-layout-card">
             <div class="quiz-layout-wrapper">
                 <!-- Sidebar -->
@@ -51,7 +48,7 @@
                     <!-- Fixed Header -->
                     <div class="quiz-header fixed-header">
                         <div class="header-left">
-                            <h2 class="quiz-title">Python Mastery — Mock Test 1</h2>
+                            <h2 class="quiz-title">Python Mastery — Mock Test 2</h2>
                             <div class="question-counter">Question <span id="current-q">1</span> / <span id="total-q">40</span></div>
                         </div>
                         <div class="header-right">
@@ -144,7 +141,6 @@
     <div id="toast">Message</div>
 
     <script src="data/data.js"></script>
-    <script src="data/mock2_data.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

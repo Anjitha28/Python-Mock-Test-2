@@ -15,8 +15,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Initialize PostgreSQL Pool
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL
 });
 
 // Initialize Database Schema
