@@ -154,9 +154,13 @@ startTestBtn.addEventListener('click', async () => {
             attemptNumber = data.attempt.attempt_number;
             localStorage.setItem('pq_attemptid', attemptId);
             localStorage.setItem('pq_attempt', attemptNumber);
+        } else {
+            const errData = await res.json();
+            alert("Warning: Failed to start quiz on the server: " + (errData.error || 'Unknown Error') + ". Your results may not be saved.");
         }
     } catch (err) {
         console.error("Failed to register quiz start on backend:", err);
+        alert("Warning: Could not connect to the database to start the quiz. Your results may not be saved. Please check your connection.");
     }
 });
 
