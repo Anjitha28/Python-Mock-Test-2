@@ -41,10 +41,77 @@ const toastEl = document.getElementById('toast');
 const markReviewBtn = document.getElementById('btn-mark-review');
 const markText = document.getElementById('mark-text');
 
+// Shuffling Logic
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function prepareShuffledQuiz() {
+    const rawQuestions = typeof mockTestData !== 'undefined' ? mockTestData : [];
+    if (rawQuestions.length === 0) return;
+    
+    const preparedQuestions = rawQuestions.map((origQ, origIdx) => {
+        const q = JSON.parse(JSON.stringify(origQ));
+        q.originalId = q.id || (origIdx + 1);
+        
+        // Store stable correct answer(s) before shuffling options
+        if (q.type === 'MCQ') {
+            const origCorrectIdx = Array.isArray(q.a) ? q.a[0] : q.a;
+            q.correctValue = (q.options && q.options[origCorrectIdx] !== undefined) ? q.options[origCorrectIdx] : String(origCorrectIdx);
+            if (q.options && Array.isArray(q.options)) {
+                q.options = shuffleArray(q.options);
+            }
+        } else if (q.type === 'MCQ2') {
+            if (Array.isArray(q.a)) {
+                q.correctValues = q.a.map(idx => q.options[idx]);
+            } else {
+                q.correctValues = [q.options[q.a]];
+            }
+            if (q.options && Array.isArray(q.options)) {
+                q.options = shuffleArray(q.options);
+            }
+        } else if (q.type === 'DROPDOWN' || q.type === 'DD') {
+            const correctArr = Array.isArray(q.a) ? q.a : [q.a];
+            const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
+            
+            q.correctValues = correctArr.map((ans, i) => {
+                if (typeof ans === 'number' || (!isNaN(ans) && String(ans).trim() !== '' && typeof ans !== 'string')) {
+                    const opts = optionsArrays[i] || optionsArrays[0] || [];
+                    return opts[ans] !== undefined ? opts[ans] : ans;
+                }
+                return ans;
+            });
+            
+            if (Array.isArray(q.options[0])) {
+                q.options = q.options.map(optsArr => shuffleArray(optsArr));
+            } else if (Array.isArray(q.options)) {
+                q.options = shuffleArray(q.options);
+            }
+        } else if (q.type === 'MTF' || q.type === 'DND') {
+            if (q.labels && Array.isArray(q.labels)) {
+                q.labels = shuffleArray(q.labels);
+            }
+            if (q.type === 'DND' && q.options && Array.isArray(q.options)) {
+                q.options = shuffleArray(q.options);
+            }
+        }
+        
+        return q;
+    });
+    
+    questions = shuffleArray(preparedQuestions);
+    if (totalQSpan) totalQSpan.innerText = questions.length;
+}
+
 // Initialization
 async function init() {
     try {
-        questions = typeof mockTestData !== 'undefined' ? mockTestData : [];
+        prepareShuffledQuiz();
         if(questions.length === 0) {
             console.error("No questions found.");
         }
@@ -130,6 +197,7 @@ loginForm.addEventListener('submit', async (e) => {
 });
 
 startTestBtn.addEventListener('click', async () => {
+    prepareShuffledQuiz();
     currentQuestionIndex = 0;
     userAnswers = {};
     markedForReview = {};
@@ -629,16 +697,18 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
         let caDisplay = '';
         
         if (q.type === 'MCQ') {
-            if (ua !== undefined) {
-                if (ua === correct || (Array.isArray(correct) && correct[0] === ua)) {
+            const expectedText = q.correctValue !== undefined ? q.correctValue : (Array.isArray(correct) ? (q.options ? q.options[correct[0]] : String(correct[0])) : (q.options ? q.options[correct] : String(correct)));
+            if (ua !== undefined && ua !== null && ua !== '') {
+                const selectedText = (q.options && q.options[ua] !== undefined) ? q.options[ua] : String(ua);
+                if (selectedText === expectedText || String(selectedText).trim() === String(expectedText).trim()) {
                     qPts = 1;
                     qStatus = 'Correct';
                 } else {
                     qStatus = 'Incorrect';
                 }
-                uaDisplay = (q.options && q.options[ua] !== undefined) ? q.options[ua] : String(ua);
+                uaDisplay = selectedText;
             }
-            caDisplay = Array.isArray(correct) ? (q.options ? q.options[correct[0]] : String(correct[0])) : (q.options ? q.options[correct] : String(correct));
+            caDisplay = expectedText;
 
         } else if (q.type === 'TF') {
             if (Array.isArray(correct)) {
@@ -684,34 +754,42 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
             }
 
         } else if (q.type === 'MCQ2') {
-            if (ua && Array.isArray(correct)) {
+            const expectedValues = q.correctValues || (Array.isArray(correct) ? correct.map(idx => q.options[idx]) : [q.options[correct]]);
+            if (ua && Array.isArray(ua) && ua.length > 0) {
                 let pts = 0;
-                ua.forEach(ans => { if (correct.includes(ans)) pts += (1/correct.length); });
+                const selectedTexts = ua.map(idx => (q.options && q.options[idx] !== undefined) ? q.options[idx] : idx);
+                selectedTexts.forEach(txt => {
+                    if (expectedValues.includes(txt) || expectedValues.map(String).includes(String(txt))) {
+                        pts += (1 / expectedValues.length);
+                    }
+                });
                 qPts = pts;
                 if (pts === 1) qStatus = 'Correct';
-                else if (pts > 0) qStatus = 'Incorrect'; // Partial credit not fully correct
+                else if (pts > 0) qStatus = 'Incorrect';
                 else qStatus = 'Incorrect';
                 
-                uaDisplay = ua.map(a => q.options[a]).join(', ');
+                uaDisplay = selectedTexts.join(', ');
             } else if (ua !== undefined && ua.length > 0) {
                  qStatus = 'Incorrect';
-                 uaDisplay = ua.map(a => q.options[a]).join(', ');
+                 uaDisplay = Array.isArray(ua) ? ua.map(idx => (q.options && q.options[idx] !== undefined) ? q.options[idx] : idx).join(', ') : String(ua);
             }
-            caDisplay = Array.isArray(correct) ? correct.map(a => q.options[a]).join(', ') : String(correct);
+            caDisplay = Array.isArray(expectedValues) ? expectedValues.join(', ') : String(expectedValues);
 
         } else if (q.type === 'DROPDOWN' || q.type === 'DD') {
-            const correct = Array.isArray(q.a) ? q.a : [q.a];
-            if (ua && Array.isArray(correct)) {
+            const expectedValues = q.correctValues || (Array.isArray(q.a) ? q.a : [q.a]);
+            if (ua && typeof ua === 'object') {
                 let pts = 0;
                 let uaArr = [];
                 const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
-                correct.forEach((ansText, i) => {
+                expectedValues.forEach((ansText, i) => {
                     const selIdx = ua[i];
                     if (selIdx !== undefined && selIdx !== "-1" && selIdx !== null) {
                         const opts = optionsArrays[i] || optionsArrays[0] || [];
                         const selText = (typeof selIdx === 'number' || !isNaN(selIdx)) && opts[selIdx] !== undefined ? opts[selIdx] : selIdx;
                         uaArr.push(`Blank ${i+1}: ${selText}`);
-                        if (selText === ansText || selIdx == ansText) pts += (1 / correct.length);
+                        if (String(selText).trim() === String(ansText).trim() || selIdx == ansText) {
+                            pts += (1 / expectedValues.length);
+                        }
                     } else {
                         uaArr.push(`Blank ${i+1}: Not Answered`);
                     }
@@ -723,7 +801,7 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
                 
                 if (Object.keys(ua).length > 0) uaDisplay = uaArr.join('\n');
             }
-            caDisplay = Array.isArray(correct) ? correct.map((c, i) => `Blank ${i+1}: ${c}`).join('\n') : String(correct);
+            caDisplay = expectedValues.map((c, i) => `Blank ${i+1}: ${c}`).join('\n');
 
         } else if (q.type === 'SHORT') {
             if (ua) {
