@@ -56,26 +56,15 @@ const mockTestData = [
   },
   {
     "id": 4,
-    "type": "MTF",
-    "q": "You need to identify the data types of various type operations.<br><br>Move the appropriate data types from the list on the left to the correct type operations on the right. You may use each data type once, more than once, or not at all.<br><br><span style='font-size: 15px; font-style: italic;'>Note: You will receive partial credit for each correct match.</span>",
-    "labels": [
-      "int",
-      "float",
-      "str",
-      "bool"
-    ],
+    "type": "MCQ",
+    "q": "You are developing a program that processes numbers from 1 to 10. The program must:<br>• Stop the loop immediately when the number 7 is encountered.<br><br>Complete the code by selecting the correct option.",
+    "code": "for i in range(1, 11):\n    if i == 7:\n        [b1]\n    print(i)",
     "options": [
-      "type(+1E10)",
-      "type(5.0)",
-      "type(\"True\")",
-      "type(False)"
+      "break",
+      "continue",
+      "pass"
     ],
-    "a": {
-      "type(+1E10)": "float",
-      "type(5.0)": "float",
-      "type(\"True\")": "str",
-      "type(False)": "bool"
-    }
+    "a": 0
   },
   {
     "id": 5,
@@ -381,17 +370,15 @@ const mockTestData = [
   },
   {
     "id": 23,
-    "type": "DND",
-    "q": "You are developing a program that processes numbers from 1 to 10. The program must:<br>• Stop the loop immediately when the number 7 is encountered.<br><br>Complete the code by moving the correct code segment into the blank.<br><span style='font-size: 12px; font-style: italic;'>Note: You will receive partial credit for correct placement.</span>",
-    "code": "for i in range(1, 11):\n    if i == 7:\n        [target1]\n    print(i)",
+    "type": "MCQ",
+    "q": "You are developing a program that processes numbers from 1 to 10. The program must:<br>• Stop the loop immediately when the number 7 is encountered.<br><br>Complete the code by selecting the correct option.",
+    "code": "for i in range(1, 11):\n    if i == 7:\n        [b1]\n    print(i)",
     "options": [
       "break",
       "continue",
       "pass"
     ],
-    "a": [
-      "break"
-    ]
+    "a": 0
   },
   {
     "id": 24,
