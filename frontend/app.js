@@ -121,6 +121,14 @@ async function init() {
         showToast("Failed to load quiz data. Check console.", true);
     }
 
+    // Check if active quiz timer exists in localStorage for page refresh during active quiz
+    const activeEndTime = parseInt(localStorage.getItem('pq_endTime'), 10);
+    if (activeEndTime && activeEndTime > Date.now()) {
+        restoreTimer();
+    } else {
+        clearTimerState();
+    }
+
     // Load state from local storage if exists
     const savedName = localStorage.getItem('pq_username');
     const savedUserId = localStorage.getItem('pq_userid');
@@ -168,6 +176,7 @@ loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     userName = usernameInput.value.trim();
     if (userName) {
+        clearTimerState(); // Clear stale timer state on login
         // 1. Instantly navigate to Selection page
         displayName.innerText = userName;
         showPage('selection');
@@ -203,8 +212,8 @@ startTestBtn.addEventListener('click', async () => {
     markedForReview = {};
     initTileBar();
     
-    // 1. Immediately update UI and start test
-    startTimer();
+    // 1. Immediately reset timer to fresh 50:00 and start test
+    resetAndStartTimer();
     renderQuestion();
     showPage('quiz');
     
@@ -248,9 +257,9 @@ nextBtn.addEventListener('click', () => {
 
 submitBtn.addEventListener('click', () => {
     if (confirm("Are you sure you want to submit the quiz?")) {
-        clearInterval(timerInterval);
         const endTime = parseInt(localStorage.getItem('pq_endTime'), 10) || Date.now();
         const remainingMs = Math.max(0, endTime - Date.now());
+        clearTimerState();
         evaluateQuiz('Manual', remainingMs);
     }
 });
@@ -279,29 +288,49 @@ function formatTime(ms) {
     return `${m}:${s}`;
 }
 
-function startTimer() {
+function clearTimerState() {
     clearInterval(timerInterval);
+    timerInterval = null;
+    localStorage.removeItem('pq_endTime');
+    localStorage.removeItem('pq_startTime');
+}
+
+function resetAndStartTimer() {
+    clearTimerState();
+    const now = Date.now();
+    const endTime = now + TIME_ALLOWED_MS;
+    localStorage.setItem('pq_startTime', now);
+    localStorage.setItem('pq_endTime', endTime);
     
-    // Check if there is an existing valid timer. If not, or if it's expired, start a new 50:00 timer.
-    let endTime = parseInt(localStorage.getItem('pq_endTime'), 10);
-    if (!endTime || endTime <= Date.now()) {
-        endTime = Date.now() + TIME_ALLOWED_MS;
-        localStorage.setItem('pq_endTime', endTime);
-    }
-    
-    updateTimerDisplay(); // Initial display
+    updateTimerDisplay(); // Initial display at 50:00
     timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function restoreTimer() {
+    clearInterval(timerInterval);
+    const endTime = parseInt(localStorage.getItem('pq_endTime'), 10);
+    if (!endTime || endTime <= Date.now()) {
+        clearTimerState();
+        return false;
+    }
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+    return true;
 }
 
 function updateTimerDisplay() {
     const endTime = parseInt(localStorage.getItem('pq_endTime'), 10);
-    if (!endTime) return;
+    if (!endTime) {
+        document.getElementById('quiz-timer').innerText = '50:00';
+        return;
+    }
     
     const remainingMs = Math.max(0, endTime - Date.now());
     document.getElementById('quiz-timer').innerText = formatTime(remainingMs);
     
     if (remainingMs <= 0) {
         clearInterval(timerInterval);
+        clearTimerState();
         evaluateQuiz('Auto (Time Expired)', 0);
     }
 }
