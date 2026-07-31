@@ -58,7 +58,7 @@ const mockTestData = [
     "id": 4,
     "type": "MCQ",
     "q": "You are developing a program that processes numbers from 1 to 10. The program must:<br>• Stop the loop immediately when the number 7 is encountered.<br><br>Complete the code by selecting the correct option.",
-    "code": "for i in range(1, 11):\n    if i == 7:\n        [b1]\n    print(i)",
+    "code": "for i in range(1, 11):\n    if i == 7:\n        [Blank]\n    print(i)",
     "options": [
       "break",
       "continue",
@@ -372,7 +372,7 @@ const mockTestData = [
     "id": 23,
     "type": "MCQ",
     "q": "You are developing a program that processes numbers from 1 to 10. The program must:<br>• Stop the loop immediately when the number 7 is encountered.<br><br>Complete the code by selecting the correct option.",
-    "code": "for i in range(1, 11):\n    if i == 7:\n        [b1]\n    print(i)",
+    "code": "for i in range(1, 11):\n    if i == 7:\n        [Blank]\n    print(i)",
     "options": [
       "break",
       "continue",

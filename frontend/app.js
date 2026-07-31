@@ -622,6 +622,7 @@ function getFullQuestionHtml(q) {
         // Format [b1], [b2], [target1] placeholders into styled blank badges
         codeContent = codeContent.replace(/\[b(\d+)\]/g, '<span class="review-blank-badge">[Blank $1]</span>');
         codeContent = codeContent.replace(/\[target(\d+)\]/g, '<span class="review-blank-badge">[Blank $1]</span>');
+        codeContent = codeContent.replace(/\[Blank\]/g, '<span class="review-blank-badge">[Blank]</span>');
         html += `<pre class="review-code-block"><code>${codeContent}</code></pre>`;
     }
     
