@@ -541,6 +541,77 @@ function updateTile(idx) {
 }
 
 
+// Helper to render complete original question for Answer Review
+function getFullQuestionHtml(q) {
+    let html = `<div class="review-full-question">`;
+    
+    // 1. Question prompt text
+    html += `<div class="review-question-text">${q.q}</div>`;
+    
+    // 2. Full Python code snippet (if present)
+    if (q.code) {
+        let codeContent = q.code;
+        // Format [b1], [b2], [target1] placeholders into styled blank badges
+        codeContent = codeContent.replace(/\[b(\d+)\]/g, '<span class="review-blank-badge">[Blank $1]</span>');
+        codeContent = codeContent.replace(/\[target(\d+)\]/g, '<span class="review-blank-badge">[Blank $1]</span>');
+        html += `<pre class="review-code-block"><code>${codeContent}</code></pre>`;
+    }
+    
+    // 3. Question options, statements, or dropdown/matching choices
+    if (q.type === 'MCQ' || q.type === 'MCQ2') {
+        if (q.options && q.options.length > 0) {
+            html += `<div class="review-options-container">`;
+            html += `<div class="review-options-header">Options:</div>`;
+            html += `<ul class="review-options-list">`;
+            q.options.forEach((opt) => {
+                html += `<li><span class="opt-bullet">•</span> ${opt}</li>`;
+            });
+            html += `</ul></div>`;
+        }
+    } else if (q.type === 'TF') {
+        if (q.options && q.options.length > 0) {
+            html += `<div class="review-options-container">`;
+            html += `<div class="review-options-header">Statements:</div>`;
+            html += `<ol class="review-statements-list">`;
+            q.options.forEach((stmt) => {
+                html += `<li>${stmt}</li>`;
+            });
+            html += `</ol></div>`;
+        }
+    } else if (q.type === 'DROPDOWN' || q.type === 'DD') {
+        if (q.options && q.options.length > 0) {
+            html += `<div class="review-options-container">`;
+            html += `<div class="review-options-header">Available Options:</div>`;
+            const optionsArrays = Array.isArray(q.options[0]) ? q.options : [q.options];
+            optionsArrays.forEach((opts, bIdx) => {
+                const label = optionsArrays.length > 1 ? `Blank ${bIdx + 1}: ` : '';
+                html += `<div class="review-blank-opts"><strong>${label}</strong>${opts.join(' | ')}</div>`;
+            });
+            html += `</div>`;
+        }
+    } else if (q.type === 'MTF' || q.type === 'DND') {
+        if (q.options || q.labels) {
+            html += `<div class="review-options-container">`;
+            let itemsToMatch = q.options || [];
+            let choiceLabels = q.labels || [];
+            if (typeof q.a === 'object' && !Array.isArray(q.a)) {
+                itemsToMatch = Object.keys(q.a);
+                if (q.labels) choiceLabels = q.labels;
+            }
+            if (itemsToMatch.length > 0) {
+                html += `<div class="review-blank-opts"><strong>Items to Match:</strong> ${itemsToMatch.join(' | ')}</div>`;
+            }
+            if (choiceLabels.length > 0) {
+                html += `<div class="review-blank-opts"><strong>Available Choices:</strong> ${choiceLabels.join(' | ')}</div>`;
+            }
+            html += `</div>`;
+        }
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
 // Evaluation
 async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
     localStorage.removeItem('pq_endTime'); // Clear timer state
@@ -572,7 +643,8 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
         } else if (q.type === 'TF') {
             if (Array.isArray(correct)) {
                 let pts = 0;
-                let reviewLines = [];
+                let uaArr = [];
+                let caArr = [];
                 correct.forEach((ansText, i) => {
                     const stmtText = q.options ? q.options[i] : `Statement ${i+1}`;
                     const selAns = (ua && ua[i] !== undefined) ? ua[i] : null;
@@ -580,26 +652,25 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
                     const normSel = String(selAns).toUpperCase();
                     const normAns = String(ansText).toUpperCase();
                     
-                    if (selAns !== null) {
-                        if (normSel === normAns) {
-                            pts += (1/correct.length);
-                            reviewLines.push(`${stmtText}\n\nYour Answer:\n${selAns}\n\nCorrect Answer:\n${ansText}\n\nStatus:\n✅ Correct`);
-                        } else {
-                            reviewLines.push(`${stmtText}\n\nYour Answer:\n${selAns}\n\nCorrect Answer:\n${ansText}\n\nStatus:\n❌ Incorrect`);
-                        }
-                    } else {
-                        reviewLines.push(`${stmtText}\n\nYour Answer:\nNot Answered\n\nCorrect Answer:\n${ansText}\n\nStatus:\nNot Answered`);
+                    const boolAnsStr = (ansText === true || String(ansText).toUpperCase() === 'TRUE') ? 'True' : 'False';
+                    const selAnsStr = selAns !== null ? ((selAns === true || String(selAns).toUpperCase() === 'TRUE') ? 'True' : 'False') : 'Not Answered';
+
+                    if (selAns !== null && normSel === normAns) {
+                        pts += (1 / correct.length);
                     }
+                    
+                    uaArr.push(`${stmtText}: ${selAnsStr}`);
+                    caArr.push(`${stmtText}: ${boolAnsStr}`);
                 });
                 
                 qPts = pts;
                 if (pts === 1) qStatus = 'Correct';
-                else if (pts > 0) qStatus = 'Incorrect'; 
+                else if (pts > 0) qStatus = 'Incorrect';
                 else qStatus = 'Incorrect';
                 
-                uaDisplay = reviewLines.join('\n\n------------------------------------------------\n\n');
+                uaDisplay = uaArr.join('\n');
+                caDisplay = caArr.join('\n');
             } else {
-                // Fallback for single TF
                  const normSel = String(ua).toUpperCase();
                  const normAns = String(correct).toUpperCase();
                  if (ua !== undefined && normSel === normAns) {
@@ -700,7 +771,7 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
         }
         
         // Ensure qStatus is accurate for totally empty answers
-        if (q.type !== 'TF' && (ua === undefined || ua === null || ua === '') && (typeof ua !== 'object' || Object.keys(ua || {}).length === 0) && (!Array.isArray(ua) || ua.length === 0)) {
+        if ((ua === undefined || ua === null || ua === '') && (typeof ua !== 'object' || Object.keys(ua || {}).length === 0) && (!Array.isArray(ua) || ua.length === 0)) {
             qStatus = 'Not Answered';
             uaDisplay = 'Not Answered';
         }
@@ -709,41 +780,30 @@ async function evaluateQuiz(submissionType = 'Manual', remainingMs = 0) {
         
         // Build HTML for Review
         let statusClass = qStatus === 'Correct' ? 'correct' : (qStatus === 'Incorrect' ? 'incorrect' : 'unanswered');
+        let statusText = qStatus === 'Correct' ? '✅ Correct' : (qStatus === 'Incorrect' ? '❌ Incorrect' : '⚠️ Not Answered');
         
-        if (q.type === 'TF' && Array.isArray(correct)) {
-            // TF Multiple Statements format
-            reviewHtml += `
-                <div class="review-item">
-                    <div class="review-question-num">Question ${idx + 1}</div>
-                    <div class="review-question-text">${q.q}</div>
-                    <div class="review-answers">
+        let fullQuestionContent = getFullQuestionHtml(q);
+        
+        reviewHtml += `
+            <div class="review-item">
+                <div class="review-question-num">Question ${idx + 1}</div>
+                ${fullQuestionContent}
+                <div class="review-answers">
+                    <div class="review-answer-block">
+                        <div class="review-answer-label">Your Answer:</div>
                         <div class="review-answer-value">${uaDisplay}</div>
                     </div>
-                </div>
-            `;
-        } else {
-            // Standard format
-            reviewHtml += `
-                <div class="review-item">
-                    <div class="review-question-num">Question ${idx + 1}</div>
-                    <div class="review-question-text">${q.q}</div>
-                    <div class="review-answers">
-                        <div class="review-answer-block">
-                            <div class="review-answer-label">Your Answer:</div>
-                            <div class="review-answer-value">${uaDisplay}</div>
-                        </div>
-                        <div class="review-answer-block">
-                            <div class="review-answer-label">Correct Answer:</div>
-                            <div class="review-answer-value">${caDisplay}</div>
-                        </div>
-                        <div class="review-answer-block">
-                            <div class="review-answer-label">Status:</div>
-                            <div class="review-status ${statusClass}">${qStatus}</div>
-                        </div>
+                    <div class="review-answer-block">
+                        <div class="review-answer-label">Correct Answer:</div>
+                        <div class="review-answer-value">${caDisplay}</div>
+                    </div>
+                    <div class="review-answer-block">
+                        <div class="review-answer-label">Result:</div>
+                        <div class="review-status ${statusClass}">${statusText}</div>
                     </div>
                 </div>
-            `;
-        }
+            </div>
+        `;
     });
 
     score = Math.round(score * 100) / 100; // Round to 2 decimals
