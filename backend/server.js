@@ -13,10 +13,10 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Database Connection URL with Direct Supabase Fallback
-const DEFAULT_DB_URL = "postgresql://postgres:t235uM51S0chSpcu@db.yjglyjkelzrtlzhgrdea.supabase.co:5432/postgres";
+// Database Connection URL with IPv4 Supabase Pooler Fallback
+const DEFAULT_DB_URL = "postgresql://postgres.yjglyjkelzrtlzhgrdea:t235uM51S0chSpcu@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres";
 let dbConnectionString = process.env.DATABASE_URL;
-if (!dbConnectionString || dbConnectionString.includes('gDDReh4s0gWguhMY') || dbConnectionString.includes('pooler.supabase.com')) {
+if (!dbConnectionString || dbConnectionString.includes('gDDReh4s0gWguhMY') || dbConnectionString.includes('db.yjglyjkelzrtlzhgrdea.supabase.co')) {
     dbConnectionString = DEFAULT_DB_URL;
 }
 
