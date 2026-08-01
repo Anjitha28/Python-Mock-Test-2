@@ -13,9 +13,16 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
+// Database Connection URL with Direct Supabase Fallback
+const DEFAULT_DB_URL = "postgresql://postgres:t235uM51S0chSpcu@db.yjglyjkelzrtlzhgrdea.supabase.co:5432/postgres";
+let dbConnectionString = process.env.DATABASE_URL;
+if (!dbConnectionString || dbConnectionString.includes('gDDReh4s0gWguhMY') || dbConnectionString.includes('pooler.supabase.com')) {
+    dbConnectionString = DEFAULT_DB_URL;
+}
+
 // Initialize PostgreSQL Pool
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbConnectionString,
     ssl: { rejectUnauthorized: false }
 });
 
@@ -108,7 +115,7 @@ initDB();
 
 app.post('/api/login', async (req, res) => {
     try {
-        if (!process.env.DATABASE_URL) {
+        if (!dbConnectionString) {
             return res.status(500).json({ error: "DATABASE_URL environment variable is missing on server settings." });
         }
         const { user_name } = req.body;
@@ -131,7 +138,7 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/start-quiz', async (req, res) => {
     try {
-        if (!process.env.DATABASE_URL) {
+        if (!dbConnectionString) {
             return res.status(500).json({ error: "DATABASE_URL environment variable is missing on server settings." });
         }
         let { user_id, user_name, test_name } = req.body;
@@ -171,7 +178,7 @@ app.post('/api/start-quiz', async (req, res) => {
 
 app.post('/api/finish-quiz', async (req, res) => {
     try {
-        if (!process.env.DATABASE_URL) {
+        if (!dbConnectionString) {
             return res.status(500).json({ error: "DATABASE_URL environment variable is missing on server settings." });
         }
         const data = req.body;
